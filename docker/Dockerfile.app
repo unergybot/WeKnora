@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.24 AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ ENV GOSUMDB=${GOSUMDB_ARG}
 
 # Install dependencies
 RUN if [ -n "$APK_MIRROR_ARG" ]; then \
-        sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
+    sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
     fi && \
     apt-get update && \
     apt-get install -y git build-essential
@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/go/pkg/mod make build-prod
 RUN --mount=type=cache,target=/go/pkg/mod cp -r /go/pkg/mod/github.com/yanyiwu/ /app/yanyiwu/
 
 # Final stage
-FROM debian:12.12-slim
+FROM golang:1.24
 
 WORKDIR /app
 
@@ -57,19 +57,12 @@ ARG APK_MIRROR_ARG
 RUN useradd -m -s /bin/bash appuser
 
 RUN if [ -n "$APK_MIRROR_ARG" ]; then \
-        sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
+    sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
     fi && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        build-essential postgresql-client default-mysql-client ca-certificates tzdata sed curl bash vim wget \
-        python3 python3-pip python3-dev libffi-dev libssl-dev \
-        nodejs npm && \
-    python3 -m pip install --break-system-packages --upgrade pip setuptools wheel && \
-    mkdir -p /home/appuser/.local/bin && \
-    curl -LsSf https://astral.sh/uv/install.sh | CARGO_HOME=/home/appuser/.cargo UV_INSTALL_DIR=/home/appuser/.local/bin sh && \
-    chown -R appuser:appuser /home/appuser && \
-    ln -sf /home/appuser/.local/bin/uvx /usr/local/bin/uvx && \
-    chmod +x /usr/local/bin/uvx && \
+    build-essential postgresql-client default-mysql-client ca-certificates tzdata sed curl bash vim wget \
+    libffi-dev libssl-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

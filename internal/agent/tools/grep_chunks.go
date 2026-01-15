@@ -57,8 +57,8 @@ grep_chunks scans enabled chunks across the specified knowledge bases and return
   "type": "object",
   "properties": {
     "pattern": {
-      "type": "array",
-      "description": "REQUIRED: Text patterns to search for. Can be a single pattern or multiple patterns. Treated as literal text (fixed string matching). Results match any of the patterns (OR logic).",
+      "type": ["array", "string"],
+      "description": "REQUIRED: Text patterns to search for. Can be a single pattern string or an array of pattern strings. Treated as literal text (fixed string matching). Results match any of the patterns (OR logic).",
       "items": {
         "type": "string"
       },
@@ -85,9 +85,10 @@ grep_chunks scans enabled chunks across the specified knowledge bases and return
 
 // GrepChunksInput defines the input parameters for grep chunks tool
 type GrepChunksInput struct {
-	Pattern          []string `json:"pattern" `
-	KnowledgeBaseIDs []string `json:"knowledge_base_ids,omitempty"`
-	MaxResults       int      `json:"max_results,omitempty"`
+	PatternRaw       interface{} `json:"pattern"`
+	Pattern          []string    `json:"-"` // Processed locally
+	KnowledgeBaseIDs []string    `json:"knowledge_base_ids,omitempty"`
+	MaxResults       int         `json:"max_results,omitempty"`
 }
 
 // GrepChunksTool performs text pattern matching in knowledge base chunks
@@ -123,8 +124,29 @@ func (t *GrepChunksTool) Execute(ctx context.Context, args json.RawMessage) (*ty
 		}, err
 	}
 
-	// Parse pattern parameter (required) - support multiple patterns
-	patterns := input.Pattern
+	// Handle flexible pattern input (string or array)
+	var patterns []string
+	switch v := input.PatternRaw.(type) {
+	case string:
+		if v != "" {
+			patterns = []string{v}
+		}
+	case []interface{}:
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				patterns = append(patterns, s)
+			}
+		}
+	case nil:
+		// Pattern is missing
+	default:
+		// Try to force convert to string just in case
+		s := fmt.Sprintf("%v", v)
+		if s != "" {
+			patterns = append(patterns, s)
+		}
+	}
+	input.Pattern = patterns
 
 	// Validate patterns
 	if len(patterns) == 0 {

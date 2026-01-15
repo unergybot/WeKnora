@@ -2,8 +2,6 @@ module github.com/Tencent/WeKnora
 
 go 1.24.0
 
-toolchain go1.24.2
-
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/chromedp/chromedp v0.14.2

@@ -245,7 +245,7 @@ func (e *AgentEngine) executeLoop(
 				Type:      event.EventAgentFinalAnswer,
 				SessionID: sessionID,
 				Data: event.AgentFinalAnswerData{
-					Content: "",
+					Content: response.Content,
 					Done:    true,
 				},
 			})
