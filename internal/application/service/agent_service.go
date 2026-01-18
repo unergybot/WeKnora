@@ -230,6 +230,7 @@ func (s *agentService) registerTools(
 			tools.ToolListKnowledgeChunks: true,
 			tools.ToolQueryKnowledgeGraph: true,
 			tools.ToolGetDocumentInfo:     true,
+			tools.ToolReadDocumentSection: true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
 			tools.ToolDataSchema:          true,
@@ -284,6 +285,9 @@ func (s *agentService) registerTools(
 			toolToRegister = tools.NewQueryKnowledgeGraphTool(s.knowledgeBaseService)
 		case tools.ToolGetDocumentInfo:
 			toolToRegister = tools.NewGetDocumentInfoTool(s.knowledgeService, s.chunkService)
+		case tools.ToolReadDocumentSection:
+			toolToRegister = tools.NewReadDocumentSectionTool(s.knowledgeService, s.chunkService)
+			logger.Infof(ctx, "Registered read_document_section tool")
 		case tools.ToolDatabaseQuery:
 			toolToRegister = tools.NewDatabaseQueryTool(s.db)
 		case tools.ToolWebSearch:

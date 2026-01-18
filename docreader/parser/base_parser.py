@@ -62,14 +62,14 @@ class BaseParser(ABC):
         file_name: str = "",
         file_type: Optional[str] = None,
         enable_multimodal: bool = True,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
+        chunk_size: int = 1500,
+        chunk_overlap: int = 300,
         separators: list[str] = ["\n\n", "\n", "。"],
         ocr_backend: str = "paddle",
         ocr_config: dict = {},
         max_image_size: int = 1920,  # Maximum image size
         max_concurrent_tasks: int = 5,  # Max concurrent tasks
-        max_chunks: int = 1000,  # Max number of returned chunks
+        max_chunks: int = 5000,  # Max number of returned chunks
         chunking_config: Optional[ChunkingConfig] = None,
         **kwargs,
     ):
@@ -99,7 +99,7 @@ class BaseParser(ABC):
         self.ocr_config = ocr_config
         self.max_image_size = max_image_size
         self.max_concurrent_tasks = max_concurrent_tasks
-        self.max_chunks = max_chunks
+        self.max_chunks = int(os.getenv("MAX_CHUNKS", str(max_chunks)))
         self.chunking_config = chunking_config
         self.storage = create_storage(
             self.chunking_config.storage_config if self.chunking_config else None

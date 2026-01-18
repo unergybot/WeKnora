@@ -59,6 +59,45 @@ func GetOllamaService() (*OllamaService, error) {
 	return service, nil
 }
 
+// GetEmbeddingOllamaService gets Ollama service for embeddings (can use dedicated instance)
+// Uses EMBEDDING_OLLAMA_BASE_URL if set, otherwise falls back to OLLAMA_BASE_URL
+func GetEmbeddingOllamaService() (*OllamaService, error) {
+	// Check for dedicated embedding Ollama URL first
+	baseURL := os.Getenv("EMBEDDING_OLLAMA_BASE_URL")
+	if baseURL == "" {
+		// Fallback to main Ollama URL
+		baseURL = os.Getenv("OLLAMA_BASE_URL")
+	}
+	if baseURL == "" {
+		baseURL = "http://localhost:11434"
+	}
+
+	logger.GetLogger(context.Background()).Infof("Embedding Ollama base URL: %s", baseURL)
+
+	// Create URL object
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid Embedding Ollama service URL: %w", err)
+	}
+
+	// Create official client
+	client := api.NewClient(parsedURL, http.DefaultClient)
+
+	// Check if Ollama is set as optional
+	isOptional := false
+	if os.Getenv("OLLAMA_OPTIONAL") == "true" {
+		isOptional = true
+	}
+
+	service := &OllamaService{
+		client:     client,
+		baseURL:    baseURL,
+		isOptional: isOptional,
+	}
+
+	return service, nil
+}
+
 // StartService checks if Ollama service is available
 func (s *OllamaService) StartService(ctx context.Context) error {
 	s.mu.Lock()

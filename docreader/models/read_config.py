@@ -9,10 +9,10 @@ class ChunkingConfig:
     """
 
     # Maximum size of each chunk in tokens/chars
-    chunk_size: int = 512
+    chunk_size: int = 1000
 
     # Number of tokens/chars to overlap between chunks
-    chunk_overlap: int = 50
+    chunk_overlap: int = 200
 
     # Text separators in order of priority
     separators: list[str] = field(default_factory=lambda: ["\n\n", "\n", "。"])

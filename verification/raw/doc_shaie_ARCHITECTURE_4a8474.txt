@@ -1,0 +1,206 @@
+# SHAIE Architecture Design
+
+> **Living Architecture Document** - Last updated: 2026-01-08
+
+## Overview
+
+SHAIE (Smart Hybrid AI for Enterprise) is an on-premise AI appliance that provides natural language access to enterprise data. Built on a modular architecture with self-hosted LLMs, it connects to CRM, ERP, MES systems and documents through a RAG (Retrieval-Augmented Generation) pipeline.
+
+## System Architecture
+
+![SHAIE Architecture](images/architecture.png)
+
+## Module Structure
+
+```
+shaie/
+├── api/                 # FastAPI REST API
+│   ├── main.py          # Application factory
+│   └── routes/
+│       ├── admin.py     # Document management, ingestion
+│       ├── chat.py      # RAG chat endpoints
+│       ├── embeddings.py# Embedding API
+│       ├── health.py    # Health checks
+│       ├── models.py    # Model status
+│       └── skills.py    # Skill management
+│
+├── core/                # Core services
+│   ├── llm.py           # LlamaCpp LLM wrapper
+│   ├── embedding.py     # SentenceTransformer embeddings
+│   ├── model_manager.py # Async model loading
+│   ├── skill_manager.py # Skill discovery & execution
+│   └── skill_models.py  # Skill data models
+│
+├── knowledge/           # RAG pipeline
+│   ├── file_loader.py   # File type routing
+│   ├── url_loader.py    # URL download & routing
+│   ├── web_extractor.py # Web page content extraction
+│   ├── docling_loader.py    # PDF/DOCX loader
+│   ├── markitdown_loader.py # Excel/CSV loader
+│   ├── document_processor.py# Chunking & embedding
+│   ├── vector_store.py  # Milvus integration
+│   ├── document_registry.py # Document tracking (SQLite)
+│   └── deduplication.py # Hash-based dedup
+│
+├── agents/              # LangGraph agents (future)
+├── bots/                # Messaging integrations
+├── connectors/          # Enterprise data connectors
+├── config/              # Settings management
+├── i18n/                # Internationalization
+└── static/              # Web UI (HTML/CSS/JS)
+```
+
+## Core Components
+
+### 1. Model Layer
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| LLM | llama-cpp-python + GGUF | Text generation (Qwen 14B) |
+| Embeddings | sentence-transformers | Vector embeddings (bge-m3) |
+| Model Manager | asyncio | Background loading, status tracking |
+
+**Key Files:**
+- [llm.py](file:///home/apexai/SHAIE/shaie/core/llm.py) - LlamaCpp wrapper with CUDA
+- [embedding.py](file:///home/apexai/SHAIE/shaie/core/embedding.py) - Embedding service
+- [model_manager.py](file:///home/apexai/SHAIE/shaie/core/model_manager.py) - Async loading
+
+### 2. Knowledge Pipeline (RAG)
+
+```mermaid
+flowchart LR
+    A[Files] --> B[File Loader]
+    B --> C[Document Processor]
+    C --> D{Dedup Check}
+    D -->|New| E[Chunk & Embed]
+    D -->|Exists| F[Skip]
+    D -->|Updated| G[Merge New Chunks]
+    E --> H[Vector Store]
+    G --> H
+```
+
+**Key Files:**
+- [file_loader.py](file:///home/apexai/SHAIE/shaie/knowledge/file_loader.py) - Route by extension
+- [document_processor.py](file:///home/apexai/SHAIE/shaie/knowledge/document_processor.py) - Chunk, embed, store
+- [deduplication.py](file:///home/apexai/SHAIE/shaie/knowledge/deduplication.py) - Content hashing
+- [vector_store.py](file:///home/apexai/SHAIE/shaie/knowledge/vector_store.py) - Milvus Lite
+
+### 3. API Layer
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/v1/chat` | RAG-powered chat |
+| `GET /api/v1/models/status` | Model loading status |
+| `POST /api/v1/admin/ingest` | Start document ingestion |
+| `POST /api/v1/admin/ingest-url` | Import from URL (PDF/web) |
+| `GET /api/v1/admin/documents` | List indexed documents |
+| `GET /api/v1/admin/stats` | Index statistics |
+| `GET /api/v1/skills` | List available skills |
+
+**Key Files:**
+- [main.py](file:///home/apexai/SHAIE/shaie/api/main.py) - FastAPI app factory
+- [chat.py](file:///home/apexai/SHAIE/shaie/api/routes/chat.py) - Chat endpoint
+- [admin.py](file:///home/apexai/SHAIE/shaie/api/routes/admin.py) - Admin endpoints
+
+### 4. Skill System
+
+Skills are markdown-defined tools that extend the LLM's capabilities:
+
+```
+skills/
+├── SKILL.md            # Skill definition
+├── assets/             # Images, files
+└── scripts/            # Executable scripts
+```
+
+**Key Files:**
+- [skill_manager.py](file:///home/apexai/SHAIE/shaie/core/skill_manager.py) - Skill discovery
+- [skill_models.py](file:///home/apexai/SHAIE/shaie/core/skill_models.py) - Data models
+
+## Data Flow
+
+### Chat Request Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant API as Chat API
+    participant EMB as Embedding
+    participant VS as Vector Store
+    participant LLM as LLM
+
+    U->>API: POST /chat {message}
+    API->>EMB: Embed query
+    EMB-->>API: Query vector
+    API->>VS: Search similar docs
+    VS-->>API: Top-K chunks
+    API->>LLM: Generate with context
+    LLM-->>API: Response
+    API-->>U: {response, sources}
+```
+
+### Document Ingestion Flow
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin API
+    participant Loader as File Loader
+    participant Dedup as Deduplication
+    participant Proc as Processor
+    participant VS as Vector Store
+
+    Admin->>Loader: Load file
+    Loader-->>Admin: Extracted text
+    Admin->>Dedup: Check hash
+    alt New Document
+        Dedup-->>Proc: PROCESS
+        Proc->>VS: Insert all chunks
+    else Updated Document
+        Dedup-->>Proc: MERGE
+        Proc->>VS: Insert new chunks only
+    else Duplicate
+        Dedup-->>Admin: SKIP
+    end
+```
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Language | Python 3.11+ |
+| Web Framework | FastAPI + Uvicorn |
+| LLM Runtime | llama-cpp-python (CUDA) |
+| Embeddings | sentence-transformers |
+| Vector DB | Milvus Lite |
+| Document DB | SQLite |
+| File Parsing | Docling, MarkItDown |
+| Configuration | Pydantic Settings + YAML |
+
+## Configuration
+
+Settings are loaded from:
+1. `config/settings.yaml` (primary)
+2. Environment variables
+3. Default values
+
+**Key Settings:**
+- `llm.model_path` - Path to GGUF model
+- `llm.n_gpu_layers` - GPU offload (-1 = all)
+- `embedding.model_name` - HuggingFace model
+- `database.milvus_uri` - Vector store path
+
+## Deployment
+
+### Development
+```bash
+python -m shaie.cli serve
+```
+
+### Production
+```bash
+docker-compose up -d
+```
+
+---
+
+*This document is maintained alongside the codebase. Update when architecture changes.*

@@ -88,8 +88,8 @@ def create_chunking_config(read_config: ReadConfig):
         ChunkingConfig: Configured chunking configuration object
     """
     # Extract chunking parameters
-    chunk_size = read_config.chunk_size or 512
-    chunk_overlap = read_config.chunk_overlap or 50
+    chunk_size = read_config.chunk_size or 1000
+    chunk_overlap = read_config.chunk_overlap or 200
     # Convert protobuf RepeatedScalarFieldContainer to list for type compatibility
     separators = (
         list(read_config.separators) if read_config.separators else ["\n\n", "\n", "。"]

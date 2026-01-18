@@ -56,9 +56,14 @@ func NewEmbedder(config Config) (Embedder, error) {
 	var err error
 	switch strings.ToLower(string(config.Source)) {
 	case string(types.ModelSourceLocal):
-		runtime.GetContainer().Invoke(func(pooler EmbedderPooler, ollamaService *ollama.OllamaService) {
+		// Get dedicated embedding Ollama service (uses EMBEDDING_OLLAMA_BASE_URL if set)
+		embeddingOllamaService, serviceErr := ollama.GetEmbeddingOllamaService()
+		if serviceErr != nil {
+			return nil, fmt.Errorf("failed to get embedding ollama service: %w", serviceErr)
+		}
+		runtime.GetContainer().Invoke(func(pooler EmbedderPooler) {
 			embedder, err = NewOllamaEmbedder(config.BaseURL,
-				config.ModelName, config.TruncatePromptTokens, config.Dimensions, config.ModelID, pooler, ollamaService)
+				config.ModelName, config.TruncatePromptTokens, config.Dimensions, config.ModelID, pooler, embeddingOllamaService)
 		})
 		return embedder, err
 	case string(types.ModelSourceRemote):

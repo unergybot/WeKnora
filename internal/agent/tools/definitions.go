@@ -9,6 +9,7 @@ const (
 	ToolListKnowledgeChunks = "list_knowledge_chunks"
 	ToolQueryKnowledgeGraph = "query_knowledge_graph"
 	ToolGetDocumentInfo     = "get_document_info"
+	ToolReadDocumentSection = "read_document_section"
 	ToolDatabaseQuery       = "database_query"
 	ToolDataAnalysis        = "data_analysis"
 	ToolDataSchema          = "data_schema"
@@ -34,6 +35,7 @@ func AvailableToolDefinitions() []AvailableTool {
 		{Name: ToolListKnowledgeChunks, Label: "查看文档分块", Description: "获取文档完整分块内容"},
 		{Name: ToolQueryKnowledgeGraph, Label: "查询知识图谱", Description: "从知识图谱中查询关系"},
 		{Name: ToolGetDocumentInfo, Label: "获取文档信息", Description: "查看文档元数据"},
+		{Name: ToolReadDocumentSection, Label: "阅读文档内容", Description: "阅读文档特定章节或页面内容"},
 		{Name: ToolDatabaseQuery, Label: "查询数据库", Description: "查询数据库中的信息"},
 		{Name: ToolDataAnalysis, Label: "数据分析", Description: "理解数据文件并进行数据分析"},
 		{Name: ToolDataSchema, Label: "查看数据元信息", Description: "获取表格文件的元信息"},
@@ -50,6 +52,7 @@ func DefaultAllowedTools() []string {
 		ToolListKnowledgeChunks,
 		ToolQueryKnowledgeGraph,
 		ToolGetDocumentInfo,
+		ToolReadDocumentSection,
 		ToolDatabaseQuery,
 		ToolDataAnalysis,
 		ToolDataSchema,
